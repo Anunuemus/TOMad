@@ -18,15 +18,14 @@ function createEntry(path){
 
     const issuerDN = cert.issuer.split('\n').join(',');
 
-    return [rev, issuerDN, upn];
+    return {sn : rev, issuer : issuerDN, upn : upn};
     
 }
 
 function readEntry(upn){
     try{
         const path = 'PI.ps1';
-        const result = execSync(`powershell -File "${path}" ${upn}`, { encoding: 'utf-8' }); // todo
-        console.log(result);
+        const result = execSync(`powershell.exe -File "${path}" ${upn}`, { encoding: 'utf-8' }); // todo
         return [...result.matchAll(/<SR>([a-zA-Z0-9]+)/g)].map(m => m[1]);
     } catch (error){
         console.error(`stderr: ${error.stderr}`);
@@ -34,18 +33,19 @@ function readEntry(upn){
     }
 }
 
-function deleteEntry(upn){
-    //todo
+function deleteEntry(upn, sn){
+    const entries = readEntry(upn);
+    return entries.filter(number => {
+        return !sn.includes(number);
+    });
 }
 
 function main(){
     const opt = getopt();
-
     console.log(opt);
 
     if('r' in opt){
         const numbers = readEntry(opt.r);
-        console.log(numbers);
         numbers.forEach(number => {
             console.log(`AD: ${number} \t Cert: ${Buffer.from(number, 'hex').reverse().toString('hex').toUpperCase()}`);
         });
@@ -55,17 +55,16 @@ function main(){
 
         for(let file of [...new Set(opt.files)]) {
             const temp = createEntry(file);
-            console.log(temp);
 
-            const numbers = readEntry(temp[2]);
+            const numbers = readEntry(temp.upn);
 
-            if(temp[0] === '' || numbers.includes(temp[0])){
-                console.log('continue');
+            if(temp.sn === '' || numbers.includes(temp.sn)){
+                console.log(`${temp.sn} is already included.`);
                 continue;
             }
 
             try {
-                const result = execSync(`powershell.exe -Command "Write-Output 'X509:<I>${temp[1]}<SR>${temp[0]}'"`);
+                const result = execSync(`powershell.exe -Command "Write-Output 'X509:<I>${temp.issuer}<SR>${temp.sn}'"`);
                 console.log(`stdout: ${result}`);
             } catch (error) {
                 console.error(`stderr: ${error.stderr}`);
@@ -74,7 +73,18 @@ function main(){
     }
 
     if('d' in opt){
-        console.log(readEntry(opt.d));
+        if(!opt.d || opt.sn.length < 1){
+            throw new Error('No user or sn given.');
+        }
+        const newEntries = deleteEntry(opt.d, opt.sn);
+        newEntries.forEach(entry => {
+            try{
+                const result = execSync(`powershell.exe -Command "Write-output '${entry}'`, { encoding: 'utf-8' }); // todo
+                console.log(result);   
+            }catch (error) {
+                console.error(`stderr: ${error.stderr}`);
+            }
+        });
     }
 }
 

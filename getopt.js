@@ -2,8 +2,10 @@ const {argv} = require('node:process');
 
 function getopt() {
     const args = argv.slice(2);
-    const test = {};
+    const opt = {};
     const files = [];
+    const sn = [];
+    const hexRegex = /^[0-9A-Fa-f]+$/;
 
     for(let i = 0; i < args.length; i++){
         const arg = args[i];
@@ -21,7 +23,7 @@ function getopt() {
 
             }
 
-            test[val] = split[1];
+            opt[val] = split[1];
 
         }else if(arg.startsWith('-')){
 
@@ -35,22 +37,29 @@ function getopt() {
 
             }
 
-            test[val] = true;
+            opt[val] = true;
 
         }else{
 
-            files.push(arg);
+            if(hexRegex.opt(arg)){
+                sn.push(arg);
+            }else{
+                files.push(arg);
+            }
 
         }
 
     }
-    test['files'] = files;
-    return test;
+    opt['files'] = files;
+    opt['sn'] = sn;
+    return opt;
 }
 
 function printHelp(){
     console.log('Help message');
-    console.log();
+    console.log('Usage: node TOMad.js [options] <pos arg>');
+    console.log('\n Positional arguments:');
+    console.log('');
 }
 
 module.exports = getopt;
