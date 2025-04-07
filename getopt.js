@@ -17,7 +17,6 @@ function getopt() {
 
             if (!['d', 'r'].includes(val)) {
 
-                console.log(split[0]);
                 printHelp();
                 process.exit(0);
 
@@ -31,7 +30,6 @@ function getopt() {
 
             if (!['w'].includes(val)) {
 
-                console.log(split[0]);
                 printHelp();
                 process.exit(0);
 
@@ -41,8 +39,8 @@ function getopt() {
 
         }else{
 
-            if(hexRegex.opt(arg)){
-                sn.push(arg);
+            if(hexRegex.test(arg)){
+                sn.push(Buffer.from(arg, 'hex').reverse().toString('hex'));
             }else{
                 files.push(arg);
             }
@@ -56,10 +54,16 @@ function getopt() {
 }
 
 function printHelp(){
-    console.log('Help message');
-    console.log('Usage: node TOMad.js [options] <pos arg>');
-    console.log('\n Positional arguments:');
-    console.log('');
+    console.log('\n-------------Help message-------------\n');
+    console.log('Usage: node TOMad.js [options] ...<SN> ...<PathToCert>\n');
+    console.log('Options:');
+    console.log('  -h, --h\tShow Help Message');
+    console.log('  --r=<user>\tRead all SerialNumbers currently contained in the entry of <user>');
+    console.log('  -w\t\tCreates and writes formatted entry with IssuerDN and SerialNumber from Positional Argument <PathToCert>');
+    console.log('  --d=<user>\tDelete all SerialNumbers passed with Positional Arguments <SN> from the <user\'s> entry\n');
+    console.log('Positional arguments:');
+    console.log('  <SN>\t\tSerialNumber of a certificate, only necessary for delete');
+    console.log('  <PathToCert>\tPath to certificate, only necessary for write\n');
 }
 
 module.exports = getopt;

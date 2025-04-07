@@ -14,7 +14,7 @@ function createEntry(path){
 
     const upn = cert.subjectAltName.split('UPN:')[1].split('@')[0];
 
-    const rev = Buffer.from(cert.serialNumber, 'hex').reverse().toString('hex').toUpperCase();
+    const rev = Buffer.from(cert.serialNumber, 'hex').reverse().toString('hex');
 
     const issuerDN = cert.issuer.split('\n').join(',');
 
@@ -47,7 +47,7 @@ function main(){
     if('r' in opt){
         const numbers = readEntry(opt.r);
         numbers.forEach(number => {
-            console.log(`AD: ${number} \t Cert: ${Buffer.from(number, 'hex').reverse().toString('hex').toUpperCase()}`);
+            console.log(`AD: ${number} \t Cert: ${Buffer.from(number, 'hex').reverse().toString('hex')}`);
         });
     }
 
@@ -64,7 +64,8 @@ function main(){
             }
 
             try {
-                const result = execSync(`powershell.exe -Command "Write-Output 'X509:<I>${temp.issuer}<SR>${temp.sn}'"`);
+                const path = 'PI.ps1'
+                const result = execSync(`powershell.exe -File "${path}" "${temp.upn}" "X509:<I>${temp.issuer}<SR>${temp.sn}"`, { encoding: 'utf-8' });
                 console.log(`stdout: ${result}`);
             } catch (error) {
                 console.error(`stderr: ${error.stderr}`);
@@ -77,9 +78,11 @@ function main(){
             throw new Error('No user or sn given.');
         }
         const newEntries = deleteEntry(opt.d, opt.sn);
+        console.log(newEntries);
         newEntries.forEach(entry => {
             try{
-                const result = execSync(`powershell.exe -Command "Write-output '${entry}'`, { encoding: 'utf-8' }); // todo
+                const path = 'PI.ps1'
+                const result = execSync(`powershell.exe -File "${path}" "${opt.d}" "${entry}"`, { encoding: 'utf-8' });
                 console.log(result);   
             }catch (error) {
                 console.error(`stderr: ${error.stderr}`);
