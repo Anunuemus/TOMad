@@ -13,7 +13,7 @@ function getopt() {
             const split = arg.split('=');
             const val = split[0].slice(2);
 
-            if (!['d', 'u'].includes(val)) {
+            if (!['d', 'r'].includes(val)) {
 
                 console.log(split[0]);
                 printHelp();
@@ -27,7 +27,7 @@ function getopt() {
 
             const val = arg.slice(1); 
 
-            if (!['r', 'w'].includes(val)) {
+            if (!['w'].includes(val)) {
 
                 console.log(split[0]);
                 printHelp();
