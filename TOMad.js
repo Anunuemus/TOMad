@@ -4,54 +4,68 @@ const { execSync } = require('child_process');
 
 const getopt = require('./getopt');
 
-function readCert(path){
+function createEntry(path){
     let cert;
     try{
-        cert = new X509(fs.readFileSync(path)); // wo soll das Zertifikat herkommen?
+        cert = new X509(fs.readFileSync(path));
     } catch (e) {
         throw new Error('given certificate file does not exist.');
     }
-    // console.log(cert);
-    // console.log(cert.subjectAltName);
 
-    const userID = cert.subjectAltName.split('UPN:')[1].split('@')[0];
-    // console.log('UserID: ' + userID);
-
-    const issuerDN = cert.issuer.split('\n').join(',');
+    const upn = cert.subjectAltName.split('UPN:')[1].split('@')[0];
 
     const rev = Buffer.from(cert.serialNumber, 'hex').reverse().toString('hex').toUpperCase();
 
-    return `X509:<I>${issuerDN}<SR>${rev}`;
+    const issuerDN = cert.issuer.split('\n').join(',');
+
+    return [rev, issuerDN, upn];
     
 }
 
+function readEntry(upn){
+    try{
+        const path = 'PI.ps1';
+        const result = execSync(`powershell -File "${path}" ${upn}`, { encoding: 'utf-8' }); // todo
+        console.log(result);
+        return [...result.matchAll(/<SR>([a-zA-Z0-9]+)/g)].map(m => m[1]);
+    } catch (error){
+        console.error(`stderr: ${error.stderr}`);
+        throw new Error(error.stderr);
+    }
+}
+
+function deleteEntry(upn){
+    //todo
+}
+
 function main(){
-    const test = getopt();
+    const opt = getopt();
 
-    console.log(test);
+    console.log(opt);
 
-    // getting user throwing error if empty or not passed
-    if('u' in test){
-        if(!test.u){
-            throw new Error('no user provided.')
-        }
-        console.log(test.u);
-    }else{
-        throw new Error('no user provided.');
+    if('r' in opt){
+        const numbers = readEntry(opt.r);
+        console.log(numbers);
+        numbers.forEach(number => {
+            console.log(`AD: ${number} \t Cert: ${Buffer.from(number, 'hex').reverse().toString('hex').toUpperCase()}`);
+        });
     }
 
-    // read sn, currently doing nothing
-    if('r' in test){
-        console.log(test.r);
-    }
+    if('w' in opt){
 
-    // write sn, currently just reading from cert and formatting
-    if('w' in test){
-        for(let file of [...new Set(test.files)]) {
-            const cert = readCert(file);
-            
+        for(let file of [...new Set(opt.files)]) {
+            const temp = createEntry(file);
+            console.log(temp);
+
+            const numbers = readEntry(temp[2]);
+
+            if(temp[0] === '' || numbers.includes(temp[0])){
+                console.log('continue');
+                continue;
+            }
+
             try {
-                const result = execSync(`powershell.exe -Command "Write-Output '${cert}'"`);
+                const result = execSync(`powershell.exe -Command "Write-Output 'X509:<I>${temp[1]}<SR>${temp[0]}'"`);
                 console.log(`stdout: ${result}`);
             } catch (error) {
                 console.error(`stderr: ${error.stderr}`);
@@ -59,10 +73,11 @@ function main(){
         }
     }
 
-    // delete sn, currently doing nothing
-    if('d' in test){
-        console.log(test.d);
+    if('d' in opt){
+        console.log(readEntry(opt.d));
     }
 }
 
 main();
+
+//
