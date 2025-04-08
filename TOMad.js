@@ -34,10 +34,10 @@ function readEntry(upn){
 }
 
 function deleteEntry(upn, sn){
-    const entries = read(upn).slice(2, -1).split(/,\s*/);
-    return entries.filter(number => {
-        return !sn.includes(number);
-    });
+    const entries = read(upn).replace(/\n/g, '').split('\r').filter( entry => entry !== '');
+    return entries.filter(item => 
+        !sn.some(substring => item.includes(substring))
+      );
 }
 
 function read(upn){
