@@ -1,8 +1,9 @@
 const fs = require('fs');
+const path = require('path');
 const X509 = require('crypto').X509Certificate;
 const { execSync } = require('child_process');
 
-const getopt = require('./getopt');
+const { getopt, printHelp } = require('./getopt');
 
 function createEntry(path){
     let cert;
@@ -75,10 +76,12 @@ function main(){
 
     if('d' in opt){
         if(!opt.d || opt.sn.length < 1){
-            throw new Error('No user or sn given.');
+            console.error('No user or sn given.');
+            console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`); // todo
+            printHelp();
+            process.exit(1);
         }
         const newEntries = deleteEntry(opt.d, opt.sn);
-        console.log(newEntries);
         newEntries.forEach(entry => {
             try{
                 const path = 'PI.ps1'

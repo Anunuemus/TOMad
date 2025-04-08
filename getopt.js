@@ -1,4 +1,5 @@
 const {argv} = require('node:process');
+const path = require('path');
 
 function getopt() {
     const args = argv.slice(2);
@@ -15,10 +16,17 @@ function getopt() {
             const split = arg.split('=');
             const val = split[0].slice(2);
 
-            if (!['d', 'r'].includes(val)) {
-
+            if(val === 'h'){
+                console.log('1\n');
                 printHelp();
                 process.exit(0);
+            }
+
+            if (!['d', 'r'].includes(val)) {
+                console.log('2\n');
+                console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`);
+                printHelp();
+                process.exit(1);
 
             }
 
@@ -28,10 +36,17 @@ function getopt() {
 
             const val = arg.slice(1); 
 
-            if (!['w'].includes(val)) {
-
+            if(val === 'h'){
+                console.log('3\n');
                 printHelp();
                 process.exit(0);
+            }
+
+            if (!['w'].includes(val)) {
+                console.log('4\n');
+                console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`);
+                printHelp();
+                process.exit(1);
 
             }
 
@@ -66,4 +81,7 @@ function printHelp(){
     console.log('  <PathToCert>\tPath to certificate, only necessary for write\n');
 }
 
-module.exports = getopt;
+module.exports = {
+    getopt,
+    printHelp
+};
