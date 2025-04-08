@@ -34,10 +34,19 @@ function readEntry(upn){
 }
 
 function deleteEntry(upn, sn){
-    const entries = readEntry(upn);
+    const entries = read(upn).slice(2, -1).split(/,\s*/);
     return entries.filter(number => {
         return !sn.includes(number);
     });
+}
+
+function read(upn){
+    try{
+        const path = 'PI.ps1';
+        return execSync(`powershell.exe -File "${path}" ${upn}`, { encoding: 'utf-8' });
+    } catch (error){
+        throw new Error(error.stderr);
+    }
 }
 
 function main(){
@@ -52,19 +61,40 @@ function main(){
 
     if('w' in opt){
 
-        for(let file of [...new Set(opt.files)]) {
+        const files = [...new Set(opt.files)]
+
+        let inputStr = files.length === 1 ? '@{' : '@(';
+        let dict = {};
+
+        for(let file of files) {
             const temp = createEntry(file);
 
-            const numbers = readEntry(temp.upn);
-
-            if(temp.sn === '' || numbers.includes(temp.sn)){
+            if(temp.sn === '' || readEntry(temp.upn).includes(temp.sn)){
                 console.error(`${temp.sn} is already included.`);
                 continue;
             }
 
+            if(!dict[temp.upn]){
+                dict[temp.upn] = inputStr.concat(`X509:<I>${temp.issuer}<SR>${temp.sn}`);
+                // delete old entries
+                const oldEntries = read(temp.upn);
+                try {
+                    const path = 'PI.ps1'
+                    execSync(`powershell.exe -File "${path}" "${temp.upn}" "${oldEntries}"`, { encoding: 'utf-8' });
+                } catch (error) {
+                    throw new Error(error.stderr);
+                }
+            }else{
+                dict[temp.upn] = dict[temp.upn].concat(',', `X509:<I>${temp.issuer}<SR>${temp.sn}`);
+            }            
+        }
+        for(entry in dict){
+            dict[entry] += files.length === 1 ? '}' : ')';
+            
             try {
                 const path = 'PI.ps1'
-                execSync(`powershell.exe -File "${path}" "${temp.upn}" "X509:<I>${temp.issuer}<SR>${temp.sn}"`, { encoding: 'utf-8' });
+                execSync(`powershell.exe -File "${path}" "${entry}" "${dict[entry]}"`, { encoding: 'utf-8' });
+                console.log(`added entries for ${entry}`);
             } catch (error) {
                 throw new Error(error.stderr);
             }
@@ -78,15 +108,19 @@ function main(){
             printHelp();
             process.exit(1);
         }
+        const oldEntries = read(opt.d);
         const newEntries = deleteEntry(opt.d, opt.sn);
-        newEntries.forEach(entry => {
-            try{
-                const path = 'PI.ps1'
-                execSync(`powershell.exe -File "${path}" "${opt.d}" "${entry}"`, { encoding: 'utf-8' });
-            }catch (error) {
-                throw new Error(error.stderr);
-            }
-        });
+        const inputStr = newEntries.length === 1 ? '@{' + newEntries + '}' : '@(' + newEntries.join(',') + ')';
+        try{
+            // delete
+            let path = 'PI.ps1'
+            execSync(`powershell.exe -File "${path}" "${opt.d}" "${oldEntries}"`, { encoding: 'utf-8' });
+            // write
+            path = 'PI.ps1'
+            execSync(`powershell.exe -File "${path}" "${opt.d}" "${inputStr}"`, { encoding: 'utf-8' });
+        }catch (error) {
+            throw new Error(error.stderr);
+        }
     }
 }
 
