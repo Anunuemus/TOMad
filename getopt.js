@@ -17,13 +17,11 @@ function getopt() {
             const val = split[0].slice(2);
 
             if(val === 'h'){
-                console.log('1\n');
                 printHelp();
                 process.exit(0);
             }
 
             if (!['d', 'r'].includes(val)) {
-                console.log('2\n');
                 console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`);
                 printHelp();
                 process.exit(1);
@@ -37,13 +35,11 @@ function getopt() {
             const val = arg.slice(1); 
 
             if(val === 'h'){
-                console.log('3\n');
                 printHelp();
                 process.exit(0);
             }
 
             if (!['w'].includes(val)) {
-                console.log('4\n');
                 console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`);
                 printHelp();
                 process.exit(1);
@@ -77,8 +73,13 @@ function printHelp(){
     console.log('  -w\t\tCreates and writes formatted entry with IssuerDN and SerialNumber from Positional Argument <PathToCert>');
     console.log('  --d=<user>\tDelete all SerialNumbers passed with Positional Arguments <SN> from the <user\'s> entry\n');
     console.log('Positional arguments:');
-    console.log('  <SN>\t\tSerialNumber of a certificate, only necessary for delete');
-    console.log('  <PathToCert>\tPath to certificate, only necessary for write\n');
+    console.log('  <SN>\t\tSerialNumber of a certificate, necessary for delete');
+    console.log('  <PathToCert>\tPath to certificate, necessary for write\n');
+    console.log('Example usages:');
+    console.log('  node .\\TOMad.js --r=bob');
+    console.log('  node .\\TOMad.js -w .\\certificate.crt');
+    console.log('  node .\\TOMad.js --d=bob 123456789abcdef');
+    console.log();
 }
 
 module.exports = {

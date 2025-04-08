@@ -26,10 +26,9 @@ function createEntry(path){
 function readEntry(upn){
     try{
         const path = 'PI.ps1';
-        const result = execSync(`powershell.exe -File "${path}" ${upn}`, { encoding: 'utf-8' }); // todo
+        const result = execSync(`powershell.exe -File "${path}" ${upn}`, { encoding: 'utf-8' });
         return [...result.matchAll(/<SR>([a-zA-Z0-9]+)/g)].map(m => m[1]);
     } catch (error){
-        console.error(`stderr: ${error.stderr}`);
         throw new Error(error.stderr);
     }
 }
@@ -43,7 +42,6 @@ function deleteEntry(upn, sn){
 
 function main(){
     const opt = getopt();
-    console.log(opt);
 
     if('r' in opt){
         const numbers = readEntry(opt.r);
@@ -60,16 +58,15 @@ function main(){
             const numbers = readEntry(temp.upn);
 
             if(temp.sn === '' || numbers.includes(temp.sn)){
-                console.log(`${temp.sn} is already included.`);
+                console.error(`${temp.sn} is already included.`);
                 continue;
             }
 
             try {
                 const path = 'PI.ps1'
-                const result = execSync(`powershell.exe -File "${path}" "${temp.upn}" "X509:<I>${temp.issuer}<SR>${temp.sn}"`, { encoding: 'utf-8' });
-                console.log(`stdout: ${result}`);
+                execSync(`powershell.exe -File "${path}" "${temp.upn}" "X509:<I>${temp.issuer}<SR>${temp.sn}"`, { encoding: 'utf-8' });
             } catch (error) {
-                console.error(`stderr: ${error.stderr}`);
+                throw new Error(error.stderr);
             }
         }
     }
@@ -85,15 +82,12 @@ function main(){
         newEntries.forEach(entry => {
             try{
                 const path = 'PI.ps1'
-                const result = execSync(`powershell.exe -File "${path}" "${opt.d}" "${entry}"`, { encoding: 'utf-8' });
-                console.log(result);   
+                execSync(`powershell.exe -File "${path}" "${opt.d}" "${entry}"`, { encoding: 'utf-8' });
             }catch (error) {
-                console.error(`stderr: ${error.stderr}`);
+                throw new Error(error.stderr);
             }
         });
     }
 }
 
 main();
-
-//
