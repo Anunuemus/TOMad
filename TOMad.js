@@ -34,16 +34,13 @@ function readEntry(upn){
 }
 
 function deleteEntry(upn, sn){
-    const entries = read(upn).replace(/\n/g, '').split('\r').filter( entry => entry !== '');
-    return entries.filter(item => 
-        !sn.some(substring => item.includes(substring))
-      );
-}
-
-function read(upn){
     try{
         const path = 'PI.ps1';
-        return execSync(`powershell.exe -File "${path}" ${upn}`, { encoding: 'utf-8' });
+        const result = execSync(`powershell.exe -File "${path}" ${upn}`, { encoding: 'utf-8' });
+        const entries = result.replace(/\n/g, '').split('\r').filter( entry => entry !== '');
+        return entries.filter(item => 
+            sn.some(substring => item.includes(substring))
+        );
     } catch (error){
         throw new Error(error.stderr);
     }
@@ -61,12 +58,7 @@ function main(){
 
     if('w' in opt){
 
-        const files = [...new Set(opt.files)]
-
-        let inputStr = files.length === 1 ? '@{' : '@(';
-        let dict = {};
-
-        for(let file of files) {
+        for(let file of [...new Set(opt.files)]) {
             const temp = createEntry(file);
 
             if(temp.sn === '' || readEntry(temp.upn).includes(temp.sn)){
@@ -74,52 +66,31 @@ function main(){
                 continue;
             }
 
-            if(!dict[temp.upn]){
-                dict[temp.upn] = inputStr.concat(`X509:<I>${temp.issuer}<SR>${temp.sn}`);
-                // delete old entries
-                const oldEntries = read(temp.upn);
-                try {
-                    const path = 'PI.ps1'
-                    execSync(`powershell.exe -File "${path}" "${temp.upn}" "${oldEntries}"`, { encoding: 'utf-8' });
-                } catch (error) {
-                    throw new Error(error.stderr);
-                }
-            }else{
-                dict[temp.upn] = dict[temp.upn].concat(',', `X509:<I>${temp.issuer}<SR>${temp.sn}`);
-            }            
-        }
-        for(entry in dict){
-            dict[entry] += files.length === 1 ? '}' : ')';
-            
             try {
                 const path = 'PI.ps1'
-                execSync(`powershell.exe -File "${path}" "${entry}" "${dict[entry]}"`, { encoding: 'utf-8' });
-                console.log(`added entries for ${entry}`);
+                execSync(`powershell.exe -File "${path}" "${temp.upn}" "X509:<I>${temp.issuer}<SN>${temp.sn}"`, { encoding: 'utf-8' });
             } catch (error) {
                 throw new Error(error.stderr);
-            }
+            } 
         }
+
     }
 
     if('d' in opt){
         if(!opt.d || opt.sn.length < 1){
             console.error('No user or sn given.');
-            console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`); // todo
+            console.error(`bad usage: node ${path.basename(process.argv[1])} ${process.argv.slice(2).join(' ')}`);
             printHelp();
             process.exit(1);
         }
-        const oldEntries = read(opt.d);
         const newEntries = deleteEntry(opt.d, opt.sn);
-        const inputStr = newEntries.length === 1 ? '@{' + newEntries + '}' : '@(' + newEntries.join(',') + ')';
-        try{
-            // delete
-            let path = 'PI.ps1'
-            execSync(`powershell.exe -File "${path}" "${opt.d}" "${oldEntries}"`, { encoding: 'utf-8' });
-            // write
-            path = 'PI.ps1'
-            execSync(`powershell.exe -File "${path}" "${opt.d}" "${inputStr}"`, { encoding: 'utf-8' });
-        }catch (error) {
-            throw new Error(error.stderr);
+        if(newEntries.length > 0){
+            try{
+                let path = 'PI.ps1'
+                console.log(execSync(`powershell.exe -File "${path}" "${opt.d}" "${newEntries}"`, { encoding: 'utf-8' }));
+            }catch (error) {
+                throw new Error(error.stderr);
+            }
         }
     }
 }
