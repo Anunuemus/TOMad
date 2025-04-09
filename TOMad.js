@@ -68,7 +68,7 @@ function main(){
 
             try {
                 const path = 'PI.ps1'
-                execSync(`powershell.exe -File "${path}" "${temp.upn}" "X509:<I>${temp.issuer}<SN>${temp.sn}"`, { encoding: 'utf-8' });
+                execSync(`powershell.exe -File "${path}" "${temp.upn}" "'X509:<I>${temp.issuer}<SR>${temp.sn}'"`, { encoding: 'utf-8' });
             } catch (error) {
                 throw new Error(error.stderr);
             } 
@@ -87,7 +87,7 @@ function main(){
         if(newEntries.length > 0){
             try{
                 let path = 'PI.ps1'
-                console.log(execSync(`powershell.exe -File "${path}" "${opt.d}" "${newEntries}"`, { encoding: 'utf-8' }));
+                execSync(`powershell.exe -File "${path}" "${opt.d}" "${newEntries}"`, { encoding: 'utf-8' });
             }catch (error) {
                 throw new Error(error.stderr);
             }
